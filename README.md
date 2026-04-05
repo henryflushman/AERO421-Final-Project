@@ -39,7 +39,7 @@ If you do not see this, you have either not properly created the conda environme
 ```
 conda install -c conda-forge control slycot
 ```
-5. Verify that this installation has processed, run this command:
+5. Verify that this installation has processed by running this command:
 ```
 python -c "import slycot"
 ```

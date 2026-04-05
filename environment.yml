@@ -1,0 +1,11 @@
+name: AERO421
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=2.4.3
+  - scipy=1.17.1
+  - matplotlib=3.10.8
+  - jupyterLab=4.5.6
+  - control=0.10.2
