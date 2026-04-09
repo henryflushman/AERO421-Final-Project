@@ -2,3 +2,4 @@
 .vscode/settings.json
 code\satellite\__pycache__\RectangularMomentofInertia.cpython-311.pyc
 code\satellite\__pycache__\SatelliteObject.cpython-311.pyc
+code\satellite\__pycache__
