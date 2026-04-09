@@ -1,0 +1,33 @@
+{
+  "name": "MehielSat",
+  "components": [
+    {
+      "name": "bus",
+      "type": "rect_prism",
+      "mass": 500,
+      "dims": [2.0, 2.0, 2.0],
+      "position": [0.0, 0.0, 0.0]
+    },
+    {
+      "name": "sensor",
+      "type": "rect_prism",
+      "mass": 100,
+      "dims": [0.25, 0.25, 1.0],
+      "position": [0.0, 0.0, 1.5]
+    },
+    {
+      "name": "solar_panel_A",
+      "type": "rect_prism",
+      "mass": 20,
+      "dims": [2.0, 3.0, 0.05],
+      "position": [0.0, 2.5, 0.0]
+    },
+    {
+      "name": "solar_panel_B",
+      "type": "rect_prism",
+      "mass": 20,
+      "dims": [2.0, 3.0, 0.05],
+      "position": [0.0, -2.5, 0.0]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "name": "MehielSat-Detumble",
+    "components": [
+        {
+          "name": "combined_body",
+          "type": "rect_prism",
+          "mass": 640,
+          "dims": [2.0, 2.0, 2.0],
+          "position": [0.0, 0.0, 0.0]
+        }
+    ]
+}
