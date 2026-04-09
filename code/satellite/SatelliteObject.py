@@ -36,6 +36,7 @@ class SatelliteObject:
     def __init__(self, name=None, json_file=None):
         self.components = []
         self.name = "Unnamed Satellite"
+        self.orbit = {}
         if json_file is not None and name is not None:
             raise ValueError("Provide either 'json_file' or 'name', not both.")
         if name is not None:
@@ -73,6 +74,7 @@ class SatelliteObject:
             data = json.load(f)
         self.name = data.get("name", "Unnamed Satellite")
         self.components = []
+        self.orbit = {}
         if "components" not in data:
             raise ValueError("JSON file must contain a 'components' list.")
         for comp in data["components"]:
@@ -84,6 +86,9 @@ class SatelliteObject:
                 )
             else:
                 raise ValueError(f"Unsupported component type: {comp['type']}")
+            
+        if "coes" in data:
+            self.load_coes(data["coes"])
 
     def add_rect_prism(self, mass, dims, position):
         self.components.append({
@@ -167,9 +172,9 @@ class SatelliteObject:
         """
         q1, q2, q3, q4 = q
         return np.array([
-            [ q4, -q3,  q2],
-            [ q3,  q4, -q1],
-            [-q2,  q1,  q4],
+            [ q4,  q3, -q2],
+            [-q3,  q4,  q1],
+            [ q2, -q1,  q4],
             [-q1, -q2, -q3],
         ])
 
@@ -200,29 +205,25 @@ class SatelliteObject:
     @staticmethod
     def quaternion_to_dcm(q):
         """
-        Quaternion [q1, q2, q3, q4] (scalar last) → DCM C.
+        Quaternion [q1, q2, q3, q4] (scalar last) -> DCM C_BI.
 
-        v_body = C @ v_inertial  when q describes inertial→body rotation.
-
-        Reference: Schaub & Junkins, Eq. 3.58.
+        v_body = C_BI @ v_inertial
         """
         q1, q2, q3, q4 = q
         return np.array([
-            [q4**2+q1**2-q2**2-q3**2, 2*(q1*q2+q3*q4),           2*(q1*q3-q2*q4)         ],
-            [2*(q1*q2-q3*q4),          q4**2-q1**2+q2**2-q3**2,   2*(q2*q3+q1*q4)         ],
-            [2*(q1*q3+q2*q4),          2*(q2*q3-q1*q4),           q4**2-q1**2-q2**2+q3**2 ],
+            [q4**2 + q1**2 - q2**2 - q3**2,  2*(q1*q2 - q3*q4),      2*(q1*q3 + q2*q4)],
+            [2*(q1*q2 + q3*q4),              q4**2 - q1**2 + q2**2 - q3**2,  2*(q2*q3 - q1*q4)],
+            [2*(q1*q3 - q2*q4),              2*(q2*q3 + q1*q4),      q4**2 - q1**2 - q2**2 + q3**2],
         ])
 
     @staticmethod
     def dcm_to_euler321(C):
         """
-        DCM → 3-2-1 Euler angles [φ, θ, ψ] = [roll, pitch, yaw] in radians.
-
-        Singularity at θ = ±90°.
+        DCM -> 3-2-1 Euler angles [phi, theta, psi] = [roll, pitch, yaw] in radians.
         """
-        theta = np.arcsin(np.clip(-C[2, 0], -1.0, 1.0))
-        psi   = np.arctan2(C[1, 0], C[0, 0])
-        phi   = np.arctan2(C[2, 1], C[2, 2])
+        theta = np.arcsin(np.clip(-C[0, 2], -1.0, 1.0))
+        psi   = np.arctan2(C[0, 1], C[0, 0])
+        phi   = np.arctan2(C[1, 2], C[2, 2])
         return np.array([phi, theta, psi])
 
     @staticmethod
@@ -237,6 +238,134 @@ class SatelliteObject:
             [ c1*s2*c3+s1*s3,  c1*s2*s3-s1*c3, c1*c2],
         ])
 
+    # =========================================================
+    # COE / Altitude Handling
+    # =========================================================
+    
+    def load_coes(self, coes, mu=3.986004418e14, earth_radius=6.378137e6):
+        """
+        Load classical orbital elements from dict.
+
+        Supported primary orbit-size inputs:
+            a          [m]       semi-major axis
+            altitude   [m]       circular-orbit altitude
+            h          [m^2/s]   specific angular momentum
+            T_orbit    [s]       orbital period
+
+        Required:
+            e
+
+        Supported angle keys:
+            i, raan, arg_periapsis, true_anomaly
+
+        Also accepts common aliases:
+            Omega  -> raan
+            omega  -> arg_periapsis
+            theta  -> true_anomaly
+
+        angle_units:
+            "deg" or "rad"
+        """
+        angle_units = coes.get("angle_units", "rad").lower()
+
+        def use_degrees():
+            return angle_units in ("deg", "degree", "degrees")
+        
+        def ang_from_keys(*keys, default=0.0):
+            for key in keys:
+                if key in coes:
+                    val = coes[key]
+                    return np.deg2rad(val) if use_degrees() else val
+            return np.deg2rad(default) if use_degrees() else float(default)
+
+        if "e" not in coes:
+            raise ValueError("COEs must include eccentricity 'e'.")
+
+        e = float(coes["e"])
+
+        # Determine semi-major axis a
+        if "a" in coes:
+            a = float(coes["a"])
+
+        elif "altitude" in coes:
+            a = earth_radius + float(coes["altitude"])
+
+        elif "h" in coes:
+            h = float(coes["h"])
+            if abs(1.0 - e**2) < 1e-14:
+                raise ValueError("Cannot compute semi-major axis from h when e is too close to 1.")
+            a = h**2 / (mu * (1.0 - e**2))
+
+        elif "T_orbit" in coes:
+            T = float(coes["T_orbit"])
+            a = (mu * (T / (2.0 * np.pi))**2)**(1.0 / 3.0)
+
+        else:
+            raise ValueError(
+                "COEs must include one of: 'a', 'altitude', 'h', or 'T_orbit'."
+            )
+
+        # Recompute h consistently from a and e
+        h = np.sqrt(mu * a * (1.0 - e**2))
+
+        self.orbit = {
+            "a": a,
+            "e": e,
+            "h": h,
+            "i": ang_from_keys("i"),
+            "raan": ang_from_keys("raan", "Omega", "RAAN"),
+            "arg_periapsis": ang_from_keys("arg_periapsis", "omega", "w"),
+            "true_anomaly": ang_from_keys("true_anomaly", "theta", "nu"),
+            "mu": float(mu),
+            "earth_radius": float(earth_radius),
+        }
+    
+    # ─────────────────────────────────────────────────────────
+    # Altitude helpers
+    # ─────────────────────────────────────────────────────────
+    
+    def perigee_radius(self):
+        return self.orbit["a"] * (1.0 - self.orbit["e"])
+    
+    def apogee_radius(self):
+        return self.orbit["a"] * (1.0 + self.orbit["e"])
+
+    def perigee_altitude(self):
+        return self.perigee_radius() - self.orbit["earth_radius"]
+
+    def apogee_altitude(self):
+        return self.apogee_radius() - self.orbit["earth_radius"]
+
+    def mean_altitude(self):
+        return self.orbit["a"] - self.orbit["earth_radius"]
+
+    def altitude_at_true_anomaly(self, nu=None):
+        if nu is None:
+            nu = self.orbit["true_anomaly"]
+
+        a = self.orbit["a"]
+        e = self.orbit["e"]
+        R = self.orbit["earth_radius"]
+
+        r = a * (1 - e**2) / (1 + e * np.cos(nu))
+        return r - R
+
+    # ─────────────────────────────────────────────────────────
+    # Properties
+    # ─────────────────────────────────────────────────────────
+
+    @property
+    def altitude(self):
+        return self.mean_altitude()
+
+    @property
+    def perigeeAlt(self):
+        return self.perigee_altitude()
+
+    @property
+    def apogeeAlt(self):
+        return self.apogee_altitude()
+    
     # =========================================================
     # Orbital Mechanics
     # =========================================================
@@ -397,9 +526,6 @@ class SatelliteObject:
         t_eval = np.asarray(t_eval, dtype=float)
         x0 = np.asarray(x0_attitude, dtype=float)
 
-        # input_output_response expects solver settings through these names:
-        #   solve_ivp_method
-        #   solve_ivp_kwargs
         default_opts = {
             "solve_ivp_method": "RK45",
             "solve_ivp_kwargs": {"rtol": 1e-10, "atol": 1e-12},
@@ -411,7 +537,6 @@ class SatelliteObject:
         torq = np.zeros(3) if T_ext is None else np.asarray(T_ext, dtype=float)
         U = np.tile(torq.reshape(3, 1), (1, len(t_eval)))
 
-        # Since your system output is the full state, y is the state history
         t, y = ct.input_output_response(sys, t_eval, U, x0, **opts)
 
         omega = y[:3, :]
@@ -444,7 +569,6 @@ class SatelliteObject:
 
         sys = self.build_orbit_system(mu=mu)
 
-        # dummy input for the autonomous system
         U = 0.0
 
         t, y = ct.input_output_response(sys, t_eval, U, x0, **opts)
