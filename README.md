@@ -9,7 +9,7 @@
 AERO 421 Final Project, using the Python based `control-systems` library
 
 ## Installation Guide
-The setup process of this repository should be fairly straight-forward if you already have conda installed, otherwise it might be slightly difficult. For this reason I will only describe the setup process for users with conda already installed. The process for installing Anaconda will be in another file titled `ANACONDAINSTALL.md`
+The setup process of this repository should be fairly straight-forward if you already have conda installed, otherwise it might be slightly difficult. For this reason I will only describe the setup process for users with conda already installed.
 
 ### Copying the Repo to Your Computer
 1. Open Anaconda Prompt
