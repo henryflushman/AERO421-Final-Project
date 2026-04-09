@@ -2,7 +2,7 @@ import os
 os.system('cls')
 import numpy as np
 
-from function_rec_moment_of_inertia import momentInertiaRecPri
+from Functions.RectangularMomentofInertia import momentInertiaRecPri
 
 bus_mass = 500 #[kg]
 bus_dimensions = np.array([2.0,2.0,2.0]) #[m]
@@ -40,5 +40,3 @@ print('\n------Detumble Mode------')
 print('\nMoment of Inertia Matrix =\n', I_small_sat_detumble, "[kgm^2]")
 print('\nCenter of Mass =', center_of_mass, '[m]')
 print('\nTotal Mass =',sum(small_sat_detumble[:,0]))
-
-print('\n\n\n')
