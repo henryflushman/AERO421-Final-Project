@@ -1,5 +1,12 @@
-# VS Code settings - generated on setup, system-specific
-.vscode/settings.json
-code\satellite\__pycache__\RectangularMomentofInertia.cpython-311.pyc
-code\satellite\__pycache__\SatelliteObject.cpython-311.pyc
-code\satellite\__pycache__
+# VS Code
+.vscode/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.env
+venv/
