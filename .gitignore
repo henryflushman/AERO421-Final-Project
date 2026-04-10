@@ -10,3 +10,9 @@ __pycache__/
 # Environments
 .env
 venv/
+
+# Personal Files
+Assignment0.py
+Assignment1.py
+Assignment2.py
+Assignment3.py
