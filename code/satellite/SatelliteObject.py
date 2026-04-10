@@ -172,9 +172,9 @@ class SatelliteObject:
         """
         q1, q2, q3, q4 = q
         return np.array([
-            [ q4,  q3, -q2],
-            [-q3,  q4,  q1],
-            [ q2, -q1,  q4],
+            [ q4, -q3,  q2],
+            [ q3,  q4, -q1],
+            [-q2,  q1,  q4],
             [-q1, -q2, -q3],
         ])
 
@@ -186,20 +186,14 @@ class SatelliteObject:
     def dcm_to_quaternion(C):
         """
         DCM → quaternion [q1, q2, q3, q4] (scalar last).
-
-        Uses the symmetric K-matrix / eigenvalue method (Shepperd).
-        Numerically stable for all orientations, including near-180°.
-
-        Reference: Markley & Crassidis, §2.5.
         """
-        K = np.array([
-            [C[0,0]-C[1,1]-C[2,2], C[0,1]+C[1,0], C[0,2]+C[2,0], C[2,1]-C[1,2]],
-            [C[0,1]+C[1,0], C[1,1]-C[0,0]-C[2,2], C[1,2]+C[2,1], C[0,2]-C[2,0]],
-            [C[0,2]+C[2,0], C[1,2]+C[2,1], C[2,2]-C[0,0]-C[1,1], C[1,0]-C[0,1]],
-            [C[2,1]-C[1,2], C[0,2]-C[2,0], C[1,0]-C[0,1], np.trace(C)         ],
-        ]) / 3.0
-        eigvals, eigvecs = np.linalg.eigh(K)
-        q = eigvecs[:, np.argmax(eigvals)]   # [q1, q2, q3, q4]
+        q1 = (0.25 * (1.0 + C[0, 0] - C[1, 1] - C[2, 2]))**0.5
+        q2 = (0.25 * (1.0 - C[0, 0] + C[1, 1] - C[2, 2]))**0.5
+        q3 = (0.25 * (1.0 - C[0, 0] - C[1, 1] + C[2, 2]))**0.5
+        q4 = (0.25 * (1.0 + C[0, 0] + C[1, 1] + C[2, 2]))**0.5
+        q = (1/(4*q1))*np.array([
+            4*q1**2, C[0, 1] + C[1, 0], C[2, 0] + C[0, 2], C[1, 2] - C[2, 1]
+        ])
         return q if q[3] >= 0 else -q         # canonical: scalar ≥ 0
 
     @staticmethod
