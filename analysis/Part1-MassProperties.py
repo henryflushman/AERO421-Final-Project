@@ -10,6 +10,7 @@
 
 # From Repository
 import satellite.SatelliteObject as sat
+import helpers.ADCS
 
 # === Analysis ==============================
 small_sat_normal = sat.SatelliteObject(name="MehielSat")
