@@ -7,6 +7,7 @@
 clear
 close all
 clc
+addpath(genpath(pwd))
 
 %% Part 1 - Mass Properties
 
@@ -115,7 +116,7 @@ cps = [cps;
 % with respect to the center of mass
 rhos = cps-com.';
 % Now build the matrix
-surfaceProperties = [Areas cps normals];
+surfaceProperties = [Areas rhos normals];
 
 %% Part 3 - Initialize Simulation States
 
@@ -133,13 +134,14 @@ Omega = 0*pi/180; % radians
 inclination = 98.43*pi/180; % radians
 omega = 0*pi/180; % radians
 nu = 0*pi/180; % radians
+coe = [h e Omega inclination omega nu];
 
 a = h^2/mu/(1 - e^2);
 orbital_period = 2*pi*sqrt(a^3/mu);
 
 % Set/Compute initial conditions
 % intial orbital position and velocity
-[r_ECI_0, v_ECI_0] = coe2rv([h e Omega inclination omega nu]);
+[r_ECI_0, v_ECI_0] = coe2rv(coe);
 
 % No external command Torque
 T_c = [0; 0; 0]; % Nm
@@ -194,8 +196,37 @@ n_revs = 5; %revs
 tspan = n_revs * orbital_period;
 out = sim('FP_Solutions_Part_3_disturbance');
 
+logs = out.logsout;
+
+w = logs.get('w_b_ECI').Values;
+q = logs.get('q_b_ECI').Values;
+E = logs.get('E_b_ECI');
+T = logs.get('T_dist').Values;
 %% Part 5 - Plot Results
+figure(1)
 
-% Plot Angular Velocities, Euler Angles and Quaternions
+subplot(3,1,1)
+plot(w.Time, squeeze(w.Data))
+title('Angular Velocity')
+legend('\omega_x','\omega_y','\omega_z')
+grid on
 
+subplot(3,1,2)
+plot(q.Time, squeeze(q.Data))
+title('Quaternion')
+legend('q1','q2','q3','q4')
+grid on
+
+subplot(3,1,3)
+plot(q.Time, squeeze(E.Data))
+title('Euler Angles')
+legend('\phi','\theta','\psi')
+grid on
 % Plot Disturbance torques in F_b
+figure(2)
+plot(T.Time, T.Data)
+xlabel('Time (s)')
+ylabel('Torque (N*m)')
+legend('Tx','Ty','Tz')
+title(' Torque')
+grid on

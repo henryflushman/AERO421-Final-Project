@@ -7,6 +7,7 @@
 clear
 close all
 clc
+addpath(genpath(pwd))
 
 %% Part 1 - Mass Properties
 
@@ -80,7 +81,6 @@ Sun_vec = [1;0;0]; % vernal equinox
 
 residual_dipole_moment = [0;0;-0.5];
 
-
 % I constructed a matrix where the rows represent each surface of the
 % MehielSat.  The first column stores the Aera of the surface, the next
 % three columns define the normal vector of that surface in F_b, and the
@@ -116,7 +116,7 @@ cps = [cps;
 % with respect to the center of mass
 rhos = cps-com.';
 % Now build the matrix
-surfaceProperties = [Areas cps normals];
+surfaceProperties = [Areas rhos normals];
 
 %% Part 3 - Initialize Simulation States
 
@@ -134,13 +134,14 @@ Omega = 0*pi/180; % radians
 inclination = 98.43*pi/180; % radians
 omega = 0*pi/180; % radians
 nu = 0*pi/180; % radians
+coe = [h e Omega inclination omega nu];
 
 a = h^2/mu/(1 - e^2);
 orbital_period = 2*pi*sqrt(a^3/mu);
 
 % Set/Compute initial conditions
 % intial orbital position and velocity
-[r_ECI_0, v_ECI_0] = coe2rv([h e Omega inclination omega nu]);
+[r_ECI_0, v_ECI_0] = coe2rv(coe);
 
 % No external command Torque
 T_c = [0; 0; 0]; % Nm
@@ -149,27 +150,41 @@ T_c = [0; 0; 0]; % Nm
 rhat = r_ECI_0 / norm(r_ECI_0);
 hvec = cross(r_ECI_0, v_ECI_0);
 hhat = hvec / norm(hvec);
-that = cross(-rhat, hhat);   % along-track
+that = cross(-rhat, hhat);
 that = that / norm(that);
 
-% DCM from ECI to LVLH: rows are LVLH basis vectors expressed in ECI
+% Initial Euler angles relating F_body and F_LVLH (given)
+phi_0 = 0;
+theta_0 = 0;
+psi_0 = 0;
+E_b_LVLH_0 = [phi_0; theta_0; psi_0];
+
+% Initial Quaternion relating F_body and F_LVLH (given)
+q_b_LVLH_0 = [0; 0; 0; 1];
+
+% DCM from ECI to LVLH
 C_LVLH_ECI_0 = [hhat.';
                 that.';
                (-rhat).'];
 
+% DCM from LVLH to body
 c1 = cos(phi_0);
 s1 = sin(phi_0);
 c2 = cos(theta_0);
 s2 = sin(theta_0);
 c3 = cos(psi_0);
 s3 = sin(psi_0);
-C_b_LVLH_0 = [c2*c3 c2*s3 -s2; s1*s2*c3-c1*s3 s1*s2*s3+c1*c3 s1*c2; c1*s2*c3+s1*s3 c1*s2*s3-s1*c3 c1*c2];
-C_b_ECI_0 = C_b_LVLH_0*C_LVLH_ECI_0;
+
+C_b_LVLH_0 = [c2*c3,                c2*s3,               -s2;
+              s1*s2*c3-c1*s3,       s1*s2*s3+c1*c3,      s1*c2;
+              c1*s2*c3+s1*s3,       c1*s2*s3-s1*c3,      c1*c2];
+
+C_b_ECI_0 = C_b_LVLH_0 * C_LVLH_ECI_0;
 
 % Initial Euler angles relating body to ECI
 E_b_ECI_0 = C2EulerAngles(C_b_ECI_0);
 
-% Initial quaternion relating body to E
+% Initial quaternion relating body to ECI
 q_b_ECI_0 = C2quat(C_b_ECI_0);
 
 % Initial body rates of spacecraft (given)
@@ -181,8 +196,37 @@ n_revs = 5; %revs
 tspan = n_revs * orbital_period;
 out = sim('FP_Solutions_Part_3_disturbance');
 
+logs = out.logsout;
+
+w = logs.get('w_b_ECI').Values;
+q = logs.get('q_b_ECI').Values;
+E = logs.get('E_b_ECI');
+T = logs.get('T_dist').Values;
 %% Part 5 - Plot Results
+figure(1)
 
-% Plot Angular Velocities, Euler Angles and Quaternions
+subplot(3,1,1)
+plot(w.Time, squeeze(w.Data))
+title('Angular Velocity')
+legend('\omega_x','\omega_y','\omega_z')
+grid on
 
+subplot(1,3,2)
+plot(q.Time, squeeze(q.Data))
+title('Quaternion')
+legend('q1','q2','q3','q4')
+grid on
+
+subplot(1,3,3)
+plot(E.Time, squeeze(E.Data))
+title('Euler Angles')
+legend('\phi','\theta','\psi')
+grid on
 % Plot Disturbance torques in F_b
+figure(2)
+plot(T.Time, T.Data)
+xlabel('Time (s)')
+ylabel('Torque (N*m)')
+legend('Tx','Ty','Tz')
+title(' Torque')
+grid on
