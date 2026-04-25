@@ -24,7 +24,7 @@ Sp_minus_com = [0;-2.5;0];
 Sp_plus_m = 20;
 Sp_plus_com = [0;2.5;0];
 
-% Function to calculate I of rectangular prism 
+% Function to calculate I of rectangular prism
 function I = rect_prism_I(m,x,y,z)
     Ixx = (1/12)*m*(y^2+z^2);
     Iyy = (1/12)*m*(x^2+z^2);
@@ -33,16 +33,13 @@ function I = rect_prism_I(m,x,y,z)
     I = [Ixx 0 0; 0 Iyy 0; 0 0 Izz];
 end
 
-% Calculates individual Inertia Matrices 
+% Calculates individual Inertia Matrices
 Bus_I = rect_prism_I(Bus_m, 2,2,2);
-
 Sensor_I  = rect_prism_I(Sensor_m,0.25, 0.25,1);
-
 Sp_minus_I = rect_prism_I(Sp_minus_m,2,3,0.05);
-
 Sp_plus_I = rect_prism_I(Sp_plus_m,2,3,0.05);
 
-% Total Mass 
+% Total Mass
 total_mass =  Bus_m + Sensor_m + Sp_minus_m + Sp_plus_m;
 
 % Total COM
@@ -50,23 +47,22 @@ com = (Bus_com*Bus_m + Sensor_com*Sensor_m + Sp_minus_com*Sp_minus_m + Sp_plus_c
 
 % a^X skew matrix function
 function X = skew(vec)
-X = [0 -vec(3) vec(2); vec(3) 0 -vec(1); -vec(2) vec(1) 0];
+    X = [0 -vec(3) vec(2); vec(3) 0 -vec(1); -vec(2) vec(1) 0];
 end
 
-% Defines vector from individual component com to s/c com 
+% Defines vector from individual component com to s/c com
 r_Sensor = Sensor_com - com;
 r_Sp_minus = Sp_minus_com - com;
 r_Sp_plus = Sp_plus_com - com;
 r_Bus = Bus_com - com;
 
-% Normal Operation Interia Matrix 
-J = (Bus_I - Bus_m*skew(r_Bus)*skew(r_Bus)) +...
+% Normal Operation Inertia Matrix
+J = (Bus_I - Bus_m*skew(r_Bus)*skew(r_Bus)) + ...
     (Sensor_I - Sensor_m*skew(r_Sensor)*skew(r_Sensor)) + ...
-    (Sp_minus_I - Sp_minus_m*skew(r_Sp_minus)*skew(r_Sp_minus)) +...
+    (Sp_minus_I - Sp_minus_m*skew(r_Sp_minus)*skew(r_Sp_minus)) + ...
     (Sp_plus_I - Sp_plus_m*skew(r_Sp_plus)*skew(r_Sp_plus));
 
-
-% Print 
+% Print
 fprintf('The spacecraft mass for the normal operations mode is:\n')
 display(total_mass)
 fprintf('The spacecraft center of mass for the normal operations mode is:\n')
@@ -77,45 +73,87 @@ display(J)
 %% Part 2 - Geometric Properties of MehielSat during Normal Operations
 
 % Define the sun in F_ECI and residual dipole moment in F_b
-Sun_vec = [1;0;0]; % vernal equinox 
-
+Sun_vec = [1;0;0]; % vernal equinox
 residual_dipole_moment = [0;0;-0.5];
 
 % I constructed a matrix where the rows represent each surface of the
-% MehielSat.  The first column stores the Aera of the surface, the next
+% MehielSat. The first column stores the area of the surface, the next
 % three columns define the normal vector of that surface in F_b, and the
-% final three columns store the center of presure of the surface (geometric
-% center of the surface) in F_b.
+% final three columns store the center of pressure of the surface
+% (geometric center of the surface) in F_b.
 
-% First get rhos vectors with respect to the center of the spacecraft bus
+% First get rho vectors with respect to the center of the spacecraft bus
 % the MehielSat BUS is a box
 Areas = 4*ones(6,1);
 normals = [];
 cps = [];
-normals = [normals;1 0 0; -1 0 0; 0 1 0; 0 -1 0; 0 0 1; 0 0 -1];
-cps = [cps;1 0 0; -1 0 0; 0 1 0; 0 -1 0; 0 0 1; 0 0 -1];
+
+normals = [normals;
+           1 0 0;
+          -1 0 0;
+           0 1 0;
+           0 -1 0;
+           0 0 1;
+           0 0 -1];
+
+cps = [cps;
+       1 0 0;
+      -1 0 0;
+       0 1 0;
+       0 -1 0;
+       0 0 1;
+       0 0 -1];
 
 % Append geometric properties for Solar Panel 1
 Areas = [Areas;0.05*3;0.05*3;0.05*2;3*2;3*2];
-normals = [normals;1 0 0; -1 0 0; 0 -1 0; 0 0 1; 0 0 -1];
-cps = [cps;1,-2.5,0;-1,-2.5,0;0,-4,0;0,-2.5,0.025; 0,-2.5,-0.025 ];
+normals = [normals;
+           1 0 0;
+          -1 0 0;
+           0 -1 0;
+           0 0 1;
+           0 0 -1];
+cps = [cps;
+       1,-2.5,0;
+      -1,-2.5,0;
+       0,-4,0;
+       0,-2.5,0.025;
+       0,-2.5,-0.025];
+
 % Append geometric properties for Solar Panel 2
 Areas = [Areas;0.05*3;0.05*3;0.05*2;3*2;3*2];
-normals = [normals;1 0 0; -1 0 0; 0 1 0;  0 0 1; 0 0 -1];
-cps = [cps;1,2.5,0;-1,2.5,0;0,4,0;0,2.5,0.025; 0,2.5,-0.025];
-% Append geometric properties for Sensor
-Areas = [Areas;0.25;0.25;0.25;0.25;0.125 ];
-normals = [normals;1 0 0; -1 0 0; 0 1 0; 0 -1 0; 0 0 -1];
+normals = [normals;
+           1 0 0;
+          -1 0 0;
+           0 1 0;
+           0 0 1;
+           0 0 -1];
 cps = [cps;
-    0.125, 0, 1.5;
-    -0.125, 0, 1.5;
-    0, 0.125, 1.5;
-    0, -0.125, 1.5;
-    0, 0, 2 ];
-% now subtract the center of mass to get the location of the rho vectors
-% with respect to the center of mass
-rhos = cps-com.';
-% Now build the matrix
+       1,2.5,0;
+      -1,2.5,0;
+       0,4,0;
+       0,2.5,0.025;
+       0,2.5,-0.025];
+
+% Append geometric properties for Sensor
+Areas = [Areas;0.25;0.25;0.25;0.25;0.125];
+normals = [normals;
+           1 0 0;
+          -1 0 0;
+           0 1 0;
+           0 -1 0;
+           0 0 -1];
+cps = [cps;
+       0.125,  0,     1.5;
+      -0.125,  0,     1.5;
+       0,      0.125, 1.5;
+       0,     -0.125, 1.5;
+       0,      0,     2];
+
+% subtract the center of mass to get the rho vectors
+% with respect to the spacecraft center of mass
+rhos = cps - com.';
+
+% build the matrix
 surfaceProperties = [Areas rhos normals];
 
 %% Part 3 - Initialize Simulation States
@@ -140,10 +178,9 @@ a = h^2/mu/(1 - e^2);
 orbital_period = 2*pi*sqrt(a^3/mu);
 
 % Set/Compute initial conditions
-% intial orbital position and velocity
 [r_ECI_0, v_ECI_0] = coe2rv(coe);
 
-% No external command Torque
+% No external command torque
 T_c = [0; 0; 0]; % Nm
 
 % Compute initial F_LVLH basis vectors in F_ECI components
@@ -192,41 +229,136 @@ w_b_ECI_0 = [0.001; -0.001; 0.002];
 
 %% Part 4 - Simulate Results
 
-n_revs = 5; %revs
+n_revs = 1; % revs
 tspan = n_revs * orbital_period;
-out = sim('FP_Solutions_Part_3_disturbance');
 
+out = sim('FP_Solutions_Part_3_disturbance');
 logs = out.logsout;
 
+% Attitude states
 w = logs.get('w_b_ECI').Values;
 q = logs.get('q_b_ECI').Values;
-E = logs.get('E_b_ECI');
-T = logs.get('T_dist').Values;
+E = logs.get('E_b_ECI').Values;
+
+% Disturbance torques
+T_a   = logs.get('T_a').Values;
+T_srp = logs.get('T_srp').Values;
+T_gg  = logs.get('T_gg').Values;
+T_b   = logs.get('T_b').Values;
+T_dist = logs.get('T_dist').Values;
+
 %% Part 5 - Plot Results
+
+% Extract data
+wData = squeeze(w.Data);
+qData = squeeze(q.Data);
+Edata = squeeze(E.Data);
+
+TaData   = squeeze(T_a.Data);
+TsrpData = squeeze(T_srp.Data);
+TggData  = squeeze(T_gg.Data);
+TbData   = squeeze(T_b.Data);
+TdistData = squeeze(T_dist.Data);
+
+% Force all signals to be N x channels
+if size(wData,1) ~= length(w.Time)
+    wData = wData.';
+end
+
+if size(qData,1) ~= length(q.Time)
+    qData = qData.';
+end
+
+if size(Edata,1) ~= length(E.Time)
+    Edata = Edata.';
+end
+
+if size(TaData,1) ~= length(T_a.Time)
+    TaData = TaData.';
+end
+
+if size(TsrpData,1) ~= length(T_srp.Time)
+    TsrpData = TsrpData.';
+end
+
+if size(TggData,1) ~= length(T_gg.Time)
+    TggData = TggData.';
+end
+
+if size(TbData,1) ~= length(T_b.Time)
+    TbData = TbData.';
+end
+
+if size(TdistData,1) ~= length(T_dist.Time)
+    TdistData = TdistData.';
+end
+
+% Unwrap Euler angles and convert to degrees
+Edeg = rad2deg([unwrap(Edata(:,1)) unwrap(Edata(:,2)) unwrap(Edata(:,3))]);
+
+%% Figure 1: Angular velocity, quaternion, Euler angles
 figure(1)
 
 subplot(3,1,1)
-plot(w.Time, squeeze(w.Data))
+plot(w.Time, wData)
 title('Angular Velocity')
 legend('\omega_x','\omega_y','\omega_z')
+ylabel('Angular Velocity (rad/s)')
 grid on
 
 subplot(3,1,2)
-plot(q.Time, squeeze(q.Data))
+plot(q.Time, qData)
 title('Quaternion')
 legend('q1','q2','q3','q4')
+ylabel('Quaternion')
 grid on
 
 subplot(3,1,3)
-plot(q.Time, squeeze(E.Data))
+plot(E.Time, Edeg)
 title('Euler Angles')
 legend('\phi','\theta','\psi')
+xlabel('Time (s)')
+ylabel('Angle (deg)')
 grid on
-% Plot Disturbance torques in F_b
+
+%% Figure 2: Individual disturbance torques
 figure(2)
-plot(T.Time, T.Data)
+
+subplot(2,2,1)
+plot(T_a.Time, TaData)
+title('Atmospheric Drag Torque')
+legend('T_{ax}','T_{ay}','T_{az}')
+ylabel('Torque (N*m)')
+grid on
+
+subplot(2,2,2)
+plot(T_srp.Time, TsrpData)
+title('SRP Torque')
+legend('T_{srpx}','T_{srpy}','T_{srpz}')
+ylabel('Torque (N*m)')
+grid on
+
+subplot(2,2,3)
+plot(T_gg.Time, TggData)
+title('Gravity Gradient Torque')
+legend('T_{ggx}','T_{ggy}','T_{ggz}')
 xlabel('Time (s)')
 ylabel('Torque (N*m)')
-legend('Tx','Ty','Tz')
-title(' Torque')
+grid on
+
+subplot(2,2,4)
+plot(T_b.Time, TbData)
+title('Magnetic Field Torque')
+legend('T_{bx}','T_{by}','T_{bz}')
+xlabel('Time (s)')
+ylabel('Torque (N*m)')
+grid on
+
+%% Figure 3: Total disturbance torque
+figure(3)
+plot(T_dist.Time, TdistData)
+title('Total Disturbance Torque')
+legend('T_x','T_y','T_z')
+xlabel('Time (s)')
+ylabel('Torque (N*m)')
 grid on
